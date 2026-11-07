@@ -1,0 +1,14 @@
+{
+  "name": "ostras-rewards-platform",
+  "private": true,
+  "version": "1.0.0",
+  "workspaces": ["backend", "frontend"],
+  "scripts": {
+    "dev": "concurrently -k -n backend,frontend -c blue,magenta \"npm run dev -w @ostras-rewards/backend\" \"npm run dev -w @ostras-rewards/frontend\"",
+    "build": "npm run build -w @ostras-rewards/frontend",
+    "start": "concurrently -k -n backend,frontend -c blue,magenta \"npm run start -w @ostras-rewards/backend\" \"npm run start -w @ostras-rewards/frontend\"",
+    "seed:admin": "npm run seed:admin -w @ostras-rewards/backend"
+  },
+  "devDependencies": { "concurrently": "^9.2.1" },
+  "engines": { "node": ">=20.9.0" }
+}
