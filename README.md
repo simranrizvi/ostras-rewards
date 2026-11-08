@@ -10,6 +10,7 @@ A product expiry verification and rewards platform built with Next.js, Express a
 - Responsive member dashboard with points, submission totals, pending checks and recent activity.
 - JPG, PNG and WEBP uploads with file-size limits, actual image decoding and a 40-megapixel limit.
 - Exact-file duplicate protection per member using a SHA-256 fingerprint and a unique database index.
+- Optional MongoDB GridFS photo storage for persistent uploads on ephemeral hosts.
 - Private photo delivery: only the uploader and administrators can retrieve an image.
 - Optional OpenAI expiry reading and authenticated n8n callbacks; unavailable integrations fall back to manual review.
 - Paginated submission history and admin queue with status filters.
@@ -137,3 +138,5 @@ Tests start an isolated temporary MongoDB replica set using `mongodb-memory-serv
 The Compose file supplies **development MongoDB and n8n**, not container images for the web/API. Deploy `frontend` and `backend` as separate Node.js services and follow [deployment instructions](docs/deployment.md). Use HTTPS, same-site app/API domains, private persistent upload storage, database backups and proper secrets. Multi-instance API deployment requires shared rate-limit state and shared private image storage.
 
 Live OpenAI calls and a deployed n8n execution require your credentials and infrastructure. CI verifies the API callback and reward behavior without making paid external calls. Points redemption, product ownership verification, email recovery and perceptual image matching are not implemented.
+
+For the free Vercel/Render setup, use `IMAGE_STORAGE=mongodb` and the Vercel `API_PROXY_URL` configuration described in [deployment instructions](docs/deployment.md).

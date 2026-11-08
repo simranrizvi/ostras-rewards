@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { api } from '../../lib/api';
+import { photoUrl } from '../../lib/photo';
 import { useSession } from '../../components/PortalLayout';
 
 const dateLabel = (value) =>
@@ -90,7 +91,10 @@ export default function DashboardPage() {
               {data.recentSubmissions.map((item) => (
                 <article className="activity-row" key={item._id}>
                   <div className="activity-thumb">
-                    <img src={item.imageUrl} alt="Submitted product" />
+                    <img
+                      src={photoUrl(item.imageUrl)}
+                      alt="Submitted product"
+                    />
                   </div>
                   <div className="activity-copy">
                     <strong>{item.originalFileName}</strong>

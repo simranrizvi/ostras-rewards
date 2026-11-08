@@ -22,6 +22,7 @@ Set root `.env` or inject the same variables through the hosting environment. `N
 | JWT_SECRET                    | Private random string of at least 32 characters             |
 | COOKIE_SECURE                 | `true` in production                                        |
 | TRUST_PROXY_HOPS              | Trusted reverse proxy hop count; leave 0 for direct access  |
+| IMAGE_STORAGE                 | `mongodb` on Render; private images persist in Atlas GridFS |
 | UPLOAD_DIR                    | Persistent private directory, absolute path recommended     |
 | MAX_UPLOAD_MB                 | Per-photo byte limit, 1–20 MB, default 8                    |
 | REWARD_POINTS                 | Default positive integer reward, default 100                |
@@ -57,3 +58,11 @@ Use `/api/health` for liveness and `/api/ready` for readiness. MongoDB/index set
 5. Verify backups, persistent uploads and HTTPS session cookies on the actual host.
 
 Tests cover local API and database behavior. Paid OpenAI calls, n8n credentials, proxy routing and storage persistence must also be checked in the target environment.
+
+## Free Vercel + Render deployment
+
+The repository includes a Render Blueprint (`render.yaml`) for the free API. Leave n8n/OpenAI environment variables unset for manual review. Set `IMAGE_STORAGE=mongodb`: validated images are stored in private GridFS collections in the same Atlas database, and temporary Render files are removed after processing. These image bytes count toward the Atlas storage limit.
+
+For Vercel, select `frontend` as Root Directory and the Next.js framework. Set `API_PROXY_URL` to the Render HTTPS origin. Leave `NEXT_PUBLIC_API_URL` unset: browser API and authenticated image requests use `/api` on the frontend origin and are externally rewritten to Render. Cookies remain HTTP-only, Secure, SameSite=Lax, scoped to the frontend host. Set the API `WEB_ORIGIN` to the exact Vercel production URL.
+
+Use the Render service's outbound IP ranges in Atlas Network Access instead of permitting all internet addresses. Create a database account scoped to `readWrite` on `ostras_rewards`. Configure its connection URI as a Render secret; never commit credentials. Run the admin seed once using private operator-supplied credentials, then remove those seed credentials from the service environment.

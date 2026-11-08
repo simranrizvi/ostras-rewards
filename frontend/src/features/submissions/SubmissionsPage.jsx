@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { api } from '../../lib/api';
+import { photoUrl } from '../../lib/photo';
 import { usePagedResource } from '../../lib/usePagedResource';
 import Pagination from '../../components/Pagination';
 import StatusFilter from '../../components/StatusFilter';
@@ -191,7 +192,7 @@ export default function SubmissionsPage() {
             <b>2</b>
             <span>
               <strong>Date comparison</strong>
-              <small>n8n checks your product date against today.</small>
+              <small>Your product expiry date is checked against today.</small>
             </span>
           </div>
           <div className="rule-item">
@@ -237,7 +238,10 @@ export default function SubmissionsPage() {
                   <tr key={item._id}>
                     <td>
                       <div className="submission-product">
-                        <img src={item.imageUrl} alt="Submitted product" />
+                        <img
+                          src={photoUrl(item.imageUrl)}
+                          alt="Submitted product"
+                        />
                         <span>
                           <strong>{item.originalFileName}</strong>
                           <small>

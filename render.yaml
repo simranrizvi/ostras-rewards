@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: ostras-rewards-api
+    runtime: node
+    plan: free
+    buildCommand: npm ci --workspace=backend --include-workspace-root=false --omit=dev
+    startCommand: npm run start --workspace=backend
+    healthCheckPath: /api/ready
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: '22'
+      - key: COOKIE_SECURE
+        value: 'true'
+      - key: TRUST_PROXY_HOPS
+        value: '1'
+      - key: IMAGE_STORAGE
+        value: mongodb
+      - key: JWT_SECRET
+        generateValue: true
+      - key: N8N_CALLBACK_SECRET
+        generateValue: true
+      - key: WEB_ORIGIN
+        sync: false
+      - key: API_PUBLIC_URL
+        sync: false
+      - key: MONGODB_URI
+        sync: false

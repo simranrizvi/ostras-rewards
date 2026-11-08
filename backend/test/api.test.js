@@ -21,6 +21,7 @@ let replica,
   other,
   submissionId;
 process.env.NODE_ENV = 'test';
+process.env.IMAGE_STORAGE = 'mongodb';
 process.env.N8N_WEBHOOK_URL = '';
 process.env.OPENAI_API_KEY = '';
 process.env.N8N_CALLBACK_SECRET = 'integration-workflow-secret-123456';
@@ -181,9 +182,16 @@ test('valid photos persist; spoofed images and duplicate submissions are rejecte
   submissionId = result.data.submission._id;
   assert.equal(result.data.submission.status, 'pending_review');
   assert.equal((await upload(member)).response.status, 409);
-  assert.equal((await fs.readdir(uploadDir)).length, 1);
+  assert.equal((await fs.readdir(uploadDir)).length, 0);
+  assert.equal(
+    await mongoose.connection.db
+      .collection('productPhotos.files')
+      .countDocuments(),
+    1,
+  );
+  assert.equal(result.data.submission.imageStorage, 'mongodb');
 });
-test('only the owner or admin can retrieve private product images', async () => {
+test('private photos remain readable from GridFS after temporary files are removed', async () => {
   assert.equal(
     (await request(`/submissions/${submissionId}/image`)).response.status,
     401,

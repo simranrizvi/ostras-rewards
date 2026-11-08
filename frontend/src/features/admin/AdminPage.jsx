@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from '../../components/PortalLayout';
 import { api } from '../../lib/api';
+import { photoUrl } from '../../lib/photo';
 import { usePagedResource } from '../../lib/usePagedResource';
 import Pagination from '../../components/Pagination';
 import StatusFilter from '../../components/StatusFilter';
@@ -153,7 +154,7 @@ export default function AdminPage() {
                     setNote(item.reviewNote || '');
                   }}
                 >
-                  <img src={item.imageUrl} alt="Submitted product" />
+                  <img src={photoUrl(item.imageUrl)} alt="Submitted product" />
                   <span className="review-user">
                     <strong>{item.userId?.fullName || 'Member'}</strong>
                     <small>{item.userId?.email || '—'}</small>
@@ -184,7 +185,7 @@ export default function AdminPage() {
             <>
               <img
                 className="detail-photo"
-                src={selected.imageUrl}
+                src={photoUrl(selected.imageUrl)}
                 alt="Product submitted for expiry verification"
               />
               <div className="detail-owner">

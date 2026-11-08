@@ -29,6 +29,7 @@ const schema = z.object({
     .default('false')
     .transform((value) => value === 'true'),
   UPLOAD_DIR: z.string().default('./uploads'),
+  IMAGE_STORAGE: z.enum(['disk', 'mongodb']).default('disk'),
   TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(0),
   MAX_UPLOAD_MB: z.coerce.number().int().min(1).max(20).default(8),
   REWARD_POINTS: z.coerce.number().int().min(1).max(100000).default(100),

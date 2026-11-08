@@ -1,11 +1,15 @@
+import {
+  persistPhoto,
+  removePersistedPhoto,
+  sendPhoto,
+  cleanTemporaryPhoto,
+} from './photo-storage.service.js';
 import sharp from 'sharp';
-import { uploadDirectory } from '../../config/env.js';
 import { pagination, pageMeta } from '../../shared/pagination.js';
 import { parseCalendarDate, isExpiredDate } from '../../shared/date.js';
 import crypto from 'node:crypto';
 import mongoose from 'mongoose';
 import fs from 'node:fs';
-import path from 'node:path';
 import { z } from 'zod';
 import { env } from '../../config/env.js';
 import { Reward } from '../rewards/reward.model.js';
@@ -75,10 +79,13 @@ export const uploadPhoto = async (req, res) => {
   }
   const imageHash = crypto.createHash('sha256').update(bytes).digest('hex');
   const submissionId = new mongoose.Types.ObjectId();
-  const imageUrl = `${env.API_PUBLIC_URL.replace(/\/$/, '')}/api/submissions/${submissionId}/image`;
+  const imageUrl = `/api/submissions/${submissionId}/image`;
   let submission;
+  let storedPhoto;
   try {
+    storedPhoto = await persistPhoto(req.file);
     submission = await Submission.create({
+      ...storedPhoto,
       _id: submissionId,
       imageHash,
       userId: req.user._id,
@@ -88,32 +95,37 @@ export const uploadPhoto = async (req, res) => {
       status: automationConfigured() ? 'processing' : 'pending_review',
     });
   } catch (error) {
+    await removePersistedPhoto(storedPhoto).catch(() => {});
     await fs.promises.unlink(req.file.path).catch(() => {});
     throw error;
   }
-  if (automationConfigured()) {
-    try {
-      const expiryInfo = await readExpiryDate(submission.imagePath);
-      const processing = await Submission.findOneAndUpdate(
-        { _id: submission._id, status: 'processing' },
-        { $set: expiryInfo },
-        { new: true },
-      );
-      if (processing) await sendSubmissionToN8n(processing);
-      submission = await Submission.findById(submission._id);
-    } catch (error) {
-      await Submission.updateOne(
-        { _id: submission._id, status: 'processing' },
-        {
-          $set: {
-            status: 'pending_review',
-            reviewNote:
-              'Automatic checking was unavailable. An administrator will review your photo.',
+  try {
+    if (automationConfigured()) {
+      try {
+        const expiryInfo = await readExpiryDate(submission.imagePath);
+        const processing = await Submission.findOneAndUpdate(
+          { _id: submission._id, status: 'processing' },
+          { $set: expiryInfo },
+          { new: true },
+        );
+        if (processing) await sendSubmissionToN8n(processing);
+        submission = await Submission.findById(submission._id);
+      } catch (error) {
+        await Submission.updateOne(
+          { _id: submission._id, status: 'processing' },
+          {
+            $set: {
+              status: 'pending_review',
+              reviewNote:
+                'Automatic checking was unavailable. An administrator will review your photo.',
+            },
           },
-        },
-      );
-      submission = await Submission.findById(submission._id);
+        );
+        submission = await Submission.findById(submission._id);
+      }
     }
+  } finally {
+    await cleanTemporaryPhoto(req.file);
   }
   return res.status(201).json({
     submission,
@@ -262,7 +274,7 @@ export const listRewards = async (_req, res) => {
   res.json({ rewards });
 };
 
-export const viewImage = async (req, res) => {
+export const viewImage = async (req, res, next) => {
   const submission = await Submission.findById(req.params.submissionId);
   if (
     !submission ||
@@ -272,9 +284,7 @@ export const viewImage = async (req, res) => {
     return res.status(404).json({ error: 'Photo not found.' });
   }
   res.setHeader('cache-control', 'private, no-store');
-  return res.sendFile(path.basename(submission.imagePath), {
-    root: uploadDirectory,
-  });
+  return sendPhoto(submission, res, next);
 };
 export const memberRewards = async (req, res) => {
   const { page, limit, skip } = pagination(req.query);

@@ -1,5 +1,4 @@
 import mongoose from 'mongoose';
-import { env } from '../../config/env.js';
 
 const submissionSchema = new mongoose.Schema(
   {
@@ -11,6 +10,8 @@ const submissionSchema = new mongoose.Schema(
     },
     imageUrl: { type: String, required: true },
     imageHash: { type: String },
+    imageStorage: { type: String, enum: ['disk', 'mongodb'], default: 'disk' },
+    imageFileId: { type: mongoose.Schema.Types.ObjectId, default: null },
     imagePath: { type: String, required: true },
     originalFileName: { type: String, required: true },
     status: {
@@ -49,7 +50,7 @@ submissionSchema.index({ status: 1, createdAt: -1 });
 submissionSchema.post(/^find/, function (result) {
   for (const item of Array.isArray(result) ? result : [result]) {
     if (item?._id && (item.imageUrl || item.imagePath))
-      item.imageUrl = `${env.API_PUBLIC_URL.replace(/\/$/, '')}/api/submissions/${item._id}/image`;
+      item.imageUrl = `/api/submissions/${item._id}/image`;
   }
 });
 export const Submission = mongoose.model('Submission', submissionSchema);
