@@ -1,7 +1,0 @@
-{
-  "name": "@ostras-rewards/frontend",
-  "private": true,
-  "version": "1.0.0",
-  "scripts": { "dev": "next dev -p 3001", "build": "next build", "start": "next start -p 3001" },
-  "dependencies": { "next": "^16.3.4", "react": "^19.2.0", "react-dom": "^19.2.0" }
-}

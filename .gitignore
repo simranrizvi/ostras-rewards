@@ -6,7 +6,8 @@ build/
 .env
 .env.local
 .env.*.local
-backend/uploads/
+apps/api/uploads/
+uploads/
 *.log
 .DS_Store
 Thumbs.db

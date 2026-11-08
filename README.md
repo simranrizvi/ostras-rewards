@@ -1,113 +1,140 @@
 # Ostras Rewards
 
-Ostras Rewards is the original product-submission and rewards app. A member uploads a photo of a product; the backend reads the printed expiry date, n8n compares it with today's date, and a valid submission earns points for the same member who uploaded it. Unreadable dates go to an admin review queue.
+A product expiry verification and rewards platform built with Next.js, Express and MongoDB. Members submit product photos, follow verification decisions and track their points. Administrators review unclear dates. OpenAI reads expiry dates and an optional n8n workflow compares dates before calling the API to award points.
 
+[Architecture](docs/architecture.md) · [API reference](docs/api.md) · [Deployment](docs/deployment.md) · [Contributing](CONTRIBUTING.md)
 
+## Product capabilities
 
-## What the app does
-
-- Member registration and sign in with a secure HTTP-only session.
-- Member profile includes full name, email, phone, ZIP/postal code, birthday, gender, and optional referral code.
-- Product photo upload for JPG, PNG, and WEBP.
-- OpenAI vision reads the expiry date from the uploaded image. Low-confidence or unavailable OCR is sent to manual review.
-- n8n compares the expiry date to the current date and calls the protected backend workflow endpoint.
-- The backend checks the date again and records an idempotent reward ledger entry against the submission's original `userId`. A retry cannot award points twice.
-- Members see their points, photo submissions, detected expiry dates, and review status.
-- Admins can review unclear photos, approve or reject submissions, set points, and see totals.
-- MongoDB transactions keep the submission decision and reward ledger update together. The local MongoDB container starts as a replica set for transaction support.
+- Member registration, sign-in and sign-out with HTTP-only session cookies and role-based API access.
+- Responsive member dashboard with points, submission totals, pending checks and recent activity.
+- JPG, PNG and WEBP uploads with file-size limits, actual image decoding and a 40-megapixel limit.
+- Exact-file duplicate protection per member using a SHA-256 fingerprint and a unique database index.
+- Private photo delivery: only the uploader and administrators can retrieve an image.
+- Optional OpenAI expiry reading and authenticated n8n callbacks; unavailable integrations fall back to manual review.
+- Paginated submission history and admin queue with status filters.
+- Admin approval/rejection, custom award amounts, review notes and reviewer timestamps.
+- Member reward ledger with paginated point history.
+- Transactional reward decisions: concurrent approvals and callback retries cannot award a submission twice.
+- Request IDs, structured API errors, login/upload rate limits, origin checks, liveness and database readiness endpoints.
+- npm workspaces, a reproducible lockfile, formatting, automated tests and GitHub Actions checks.
 
 ## Stack
 
-| Part | Technology |
-| --- | --- |
-| Frontend | Next.js App Router, React, JavaScript |
-| Backend | Node.js, Express, JavaScript |
-| Database | MongoDB, Mongoose |
-| Photo date reading | OpenAI Vision API |
-| Date automation | n8n webhook workflow |
-| Sessions | JWT in HTTP-only cookie, bcrypt password hashes |
+| Layer                 | Technology                                                                             |
+| --------------------- | -------------------------------------------------------------------------------------- |
+| Web                   | Next.js App Router, React, JavaScript, CSS                                             |
+| API                   | Node.js, Express 5, Zod                                                                |
+| Database              | MongoDB replica set, Mongoose                                                          |
+| Images                | Multer, Sharp                                                                          |
+| Authentication        | JWT HTTP-only cookie, bcrypt                                                           |
+| Optional integrations | OpenAI vision, n8n                                                                     |
+| Quality               | Node test runner, real MongoDB replica-set integration tests, Prettier, GitHub Actions |
 
-## Folders
+## Repository structure
 
 ```text
-frontend/       Next.js member portal and admin review panel
-backend/        Express API, MongoDB models, photo processing, reward logic
-n8n/            Importable expiry-date workflow
+apps/
+  api/
+    scripts/                  # Admin seed and source checks
+    src/
+      config/                 # Validated environment and MongoDB connection
+      integrations/           # OpenAI and n8n clients
+      middleware/             # Auth, upload, origin checks and errors
+      modules/
+        auth/                 # Routes, controller, schemas, session service
+        dashboard/            # Member/admin summary endpoints
+        submissions/          # Upload/review endpoints, model, reward decisions
+        rewards/              # Points ledger model
+        users/                # Member/admin account model
+      shared/                 # Calendar-date and pagination rules
+      app.js                  # Express composition, no listening side effects
+      server.js               # Database bootstrap and HTTP lifecycle
+    test/                     # Domain and HTTP/database regression tests
+  web/
+    src/
+      app/                    # Route adapters, layouts, loading/error boundaries
+      features/               # Auth, dashboard, submissions, admin, rewards screens
+      components/             # Shared shell, pagination and status filter
+      lib/                    # HTTP client and paginated resource hook
+    next.config.mjs
+n8n/                          # Importable date-check workflow
+docs/                        # Architecture, API and deployment guidance
 ```
 
-## Local setup
+## Quick start
 
-Requirements: Node.js 20.9+, npm, and Docker Desktop (or Docker Engine).
+Requirements: Node.js 22 LTS, npm 10+, and Docker Engine/Desktop for local MongoDB and n8n. MongoDB must run as a replica set because rewards use transactions.
 
-1. Start MongoDB and n8n:
+```bash
+git clone https://github.com/simranrizvi/ostras-rewards.git
+cd ostras-rewards
+cp .env.example .env
+cp apps/web/.env.example apps/web/.env.local
+npm ci
+docker compose up -d
+npm run dev
+```
 
-   ```bash
-   docker compose up -d
-   ```
+| Service                | Address                          |
+| ---------------------- | -------------------------------- |
+| Member/admin web       | http://localhost:3001            |
+| API liveness           | http://localhost:4100/api/health |
+| API database readiness | http://localhost:4100/api/ready  |
+| n8n editor             | http://localhost:5678            |
 
-2. Prepare environment files:
+On Windows PowerShell, use `Copy-Item` instead of `cp` if needed. The API always loads the root `.env`; upload paths are resolved relative to `apps/api`, independent of the shell's working directory.
 
-   ```bash
-   cp .env.example .env
-   cp frontend/.env.example frontend/.env.local
-   ```
+Set private `JWT_SECRET` and `N8N_CALLBACK_SECRET` values. Configure `ADMIN_EMAIL` and `ADMIN_PASSWORD` before creating an administrator:
 
-3. Put a private OpenAI key in `.env` as `OPENAI_API_KEY`. This is used by the backend to read the expiry date from a product image. Set strong values for `JWT_SECRET` and `N8N_CALLBACK_SECRET` before using the app.
+```bash
+npm run seed:admin
+```
 
-4. Install dependencies and start both apps:
+The seed command creates the configured account or resets that account's admin password/role. Never use example credentials in a deployed environment.
 
-   ```bash
-   npm install
-   npm run dev
-   ```
+### Manual review mode
 
-   Frontend: `http://localhost:3001`  
-   Backend health: `http://localhost:4100/api/health`  
-   n8n: `http://localhost:5678`
+Leave `N8N_WEBHOOK_URL` empty. Registration, uploads, admin review, approvals and reward history work without paid external services. Photos enter `pending_review` until an admin makes a decision.
 
-5. Import `n8n/expiry-reward.workflow.json` in n8n. Create an **HTTP Header Auth** credential named `Ostras Automation Secret` with header `x-automation-secret` and the exact same value as `N8N_CALLBACK_SECRET` in `.env`. Select that credential in both the Webhook node and the HTTP Request node.
+### Enable automatic expiry checks
 
-6. Activate the workflow. Set `N8N_WEBHOOK_URL` in `.env` to the workflow's production webhook URL, normally `http://localhost:5678/webhook/ostras-expiry-reward`, then restart the backend.
+1. Add a private `OPENAI_API_KEY` to root `.env`; `OPENAI_MODEL` selects the vision-capable model.
+2. Import `n8n/expiry-reward.workflow.json` in n8n.
+3. Create an **HTTP Header Auth** credential named `Ostras Automation Secret`: header `x-automation-secret`, value matching `N8N_CALLBACK_SECRET`.
+4. Select this credential on both the Webhook and HTTP Request nodes.
+5. The local callback URL is `http://host.docker.internal:4100/api/submissions/automation/result`. Change it when deploying remotely.
+6. Activate the workflow and set `N8N_WEBHOOK_URL=http://localhost:5678/webhook/ostras-expiry-reward` in root `.env`.
+7. Restart the API. Submit a clear photo showing the printed expiry date.
 
-7. Create the admin user:
+The backend reads the local photo and sends a base64 image to OpenAI. n8n receives the extracted date and confidence; it does not need access to private image URLs. The callback's member identity is never trusted: rewards use the original uploader stored in MongoDB.
 
-   ```bash
-   npm run seed:admin
-   ```
+## Verification and developer commands
 
-   Set a strong `ADMIN_EMAIL` and `ADMIN_PASSWORD` in `.env` first. Sign in with that account to open the admin review panel.
+```bash
+npm run dev          # Both apps in development
+npm run build        # Web production build
+npm run start        # Production processes; run build first
+npm run check        # Backend JavaScript syntax checks
+npm test             # Domain + real database/API integration tests
+npm run format       # Apply shared formatting
+npm run verify       # Formatting, syntax, tests and production build
+```
 
-## Expiry and reward rules
+Tests start an isolated temporary MongoDB replica set using `mongodb-memory-server`; its MongoDB binary is downloaded on first use. No OpenAI/n8n keys are required. A restricted runtime that cannot start MongoDB can run domain tests with `npm run test:unit`; full integration tests run in CI. To use an existing **dedicated test** replica set, set `TEST_MONGODB_URI` with a database name containing `test`. The integration suite clears its test collections; never point it at application data.
 
-- A product expiry date that is today or later is treated as valid through that calendar day.
-- A date earlier than today is marked expired and does not earn points.
-- OCR confidence below `0.78`, or an unreadable date, sends the submission to admin review.
-- A valid date earns `REWARD_POINTS` (100 by default). Admins can enter a different point value when manually approving a clear product.
-- Reward entries are linked to both the member and a unique submission ID; the backend obtains the member ID from MongoDB and does not trust a user ID supplied by n8n.
-- If OpenAI or n8n is unavailable, the photo is saved and moved to manual review instead of being lost.
+## Reward rules
 
-## Data and API
+- Expiry dates are validated calendar dates, compared in UTC, and remain valid through the expiry day.
+- An earlier date becomes `expired` and earns zero points.
+- OCR confidence below `0.78` or no readable date requires manual review.
+- An approved submission earns `REWARD_POINTS` (default 100), or the administrator's chosen positive integer amount.
+- Final `approved`, `expired` and `rejected` decisions are not changed by callback retries.
+- A unique reward-per-submission index and a MongoDB transaction protect the submission decision and ledger together.
+- Duplicate checks detect identical bytes for the same member. Cropped, recompressed or shared photos require operational review; this is not a complete fraud-detection system.
 
-Primary models:
+## Deployment and operational scope
 
-- `User`: account and member profile.
-- `Submission`: photo, expiry result, review decision, and points awarded.
-- `Reward`: immutable points ledger entry, unique per submission.
+The Compose file supplies **development MongoDB and n8n**, not container images for the web/API. Deploy `apps/web` and `apps/api` as separate Node.js services and follow [deployment instructions](docs/deployment.md). Use HTTPS, same-site app/API domains, private persistent upload storage, database backups and proper secrets. Multi-instance API deployment requires shared rate-limit state and shared private image storage.
 
-Key routes:
-
-| Method | Route | Purpose |
-| --- | --- | --- |
-| POST | `/api/auth/register` | Create a member account |
-| POST | `/api/auth/login` | Start a member/admin session |
-| GET | `/api/dashboard/me` | Member points and recent submissions |
-| POST | `/api/submissions/upload` | Submit a product photo |
-| GET | `/api/submissions/mine` | Member submissions and reward history |
-| GET | `/api/submissions/admin/all` | Admin review queue |
-| PATCH | `/api/submissions/admin/:submissionId/review` | Admin approval or rejection |
-| POST | `/api/submissions/automation/result` | Protected n8n result callback |
-| GET | `/api/dashboard/admin` | Admin summary totals |
-
-## Deployment notes
-
-Deploy `frontend/` and `backend/` as separate services. Use HTTPS and set `WEB_ORIGIN`, `API_PUBLIC_URL`, `NEXT_PUBLIC_API_URL`, MongoDB Atlas replica-set URI, and secrets for the production environment. n8n and the backend must be able to reach each other. Configure the webhook credential, and replace the starter workflow's local callback URL with the deployed API URL. Use durable private object storage for uploads rather than local disk in production; retain only the photo data needed for reward reviews.
+Live OpenAI calls and a deployed n8n execution require your credentials and infrastructure. CI verifies the API callback and reward behavior without making paid external calls. Points redemption, product ownership verification, email recovery and perceptual image matching are not implemented.

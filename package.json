@@ -2,13 +2,26 @@
   "name": "ostras-rewards-platform",
   "private": true,
   "version": "1.0.0",
-  "workspaces": ["backend", "frontend"],
+  "workspaces": [
+    "apps/*"
+  ],
   "scripts": {
     "dev": "concurrently -k -n backend,frontend -c blue,magenta \"npm run dev -w @ostras-rewards/backend\" \"npm run dev -w @ostras-rewards/frontend\"",
     "build": "npm run build -w @ostras-rewards/frontend",
     "start": "concurrently -k -n backend,frontend -c blue,magenta \"npm run start -w @ostras-rewards/backend\" \"npm run start -w @ostras-rewards/frontend\"",
-    "seed:admin": "npm run seed:admin -w @ostras-rewards/backend"
+    "seed:admin": "npm run seed:admin -w @ostras-rewards/backend",
+    "test": "npm run test -w @ostras-rewards/backend",
+    "check": "npm run check -w @ostras-rewards/backend",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "verify": "npm run format:check && npm run check && npm test && npm run build",
+    "test:unit": "npm run test:unit -w @ostras-rewards/backend"
   },
-  "devDependencies": { "concurrently": "^9.2.1" },
-  "engines": { "node": ">=20.9.0" }
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "prettier": "^3.6.2"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  }
 }
