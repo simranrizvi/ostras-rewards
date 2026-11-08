@@ -2,7 +2,7 @@
 
 Ostras Rewards is the original product-submission and rewards app. A member uploads a photo of a product; the backend reads the printed expiry date, n8n compares it with today's date, and a valid submission earns points for the same member who uploaded it. Unreadable dates go to an admin review queue.
 
-This is a separate project from the Ostras Social Content Studio. Keep the two repositories independent.
+
 
 ## What the app does
 
