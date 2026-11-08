@@ -5,7 +5,7 @@ import { z } from 'zod';
 
 const root = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
-  '../../../../',
+  '../../../',
 );
 dotenv.config({ path: path.join(root, '.env') });
 
@@ -51,7 +51,7 @@ if (
   throw new Error('Set a private JWT_SECRET before starting in production.');
 }
 
-export const uploadDirectory = path.resolve(root, 'apps/api', env.UPLOAD_DIR);
+export const uploadDirectory = path.resolve(root, 'backend', env.UPLOAD_DIR);
 
 if (env.NODE_ENV === 'production') {
   if (!env.COOKIE_SECURE)

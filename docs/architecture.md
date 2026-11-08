@@ -33,7 +33,7 @@ OpenAI reads the printed date. n8n compares dates and sends a protected result. 
 | submissions | Uploaded image, date confidence, status, review and points | User/date, status/date, partial unique user/imageHash |
 | rewards     | Positive point credits for approved submissions            | Unique submissionId, user/date                        |
 
-Index initialization completes before the API listens. Existing submissions without a hash are covered by the partial index and remain readable. Existing photo URLs are rewritten to protected image routes when queried; the public static upload mount has been removed. Existing files must remain in the configured upload directory. Relocate old `backend/uploads` files to `apps/api/uploads` when upgrading an existing installation, or configure `UPLOAD_DIR` as an absolute persistent path.
+Index initialization completes before the API listens. Existing submissions without a hash are covered by the partial index and remain readable. Existing photo URLs are rewritten to protected image routes when queried; the public static upload mount has been removed. Existing files must remain in the configured upload directory. Existing installations can keep `backend/uploads` in place. If upgrading from the workspace layout, move `apps/api/uploads` to `backend/uploads`, or configure `UPLOAD_DIR` as an absolute persistent path.
 
 ## Security and failure behavior
 

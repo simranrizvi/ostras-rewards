@@ -36,7 +36,7 @@ Production startup rejects example JWT/workflow secrets and insecure cookies. Ke
 
 The API serves photos through authenticated routes. Never expose the upload directory directly through a proxy or static host. Use a durable private mounted volume for a single API instance. For multiple instances, implement shared private object storage and a shared rate-limit store before scaling. Back up both MongoDB and images. Define deletion/retention policies appropriate to the deployment.
 
-When upgrading from the original layout, move existing `backend/uploads` contents to `apps/api/uploads`, or point `UPLOAD_DIR` at the old persistent directory. The API rewrites legacy image URLs on reads. Existing records without image fingerprints remain readable; only newly uploaded identical files are checked by the hash index. The old `/uploads` public endpoint is removed.
+Existing installations can keep `backend/uploads` in place. When upgrading from the workspace layout, move `apps/api/uploads` contents to `backend/uploads`, or point `UPLOAD_DIR` at the existing persistent directory. The API rewrites legacy image URLs on reads. Existing records without image fingerprints remain readable; only newly uploaded identical files are checked by the hash index. The old `/uploads` public endpoint is removed.
 
 MongoDB transactions require a replica set. Back up before upgrades. Startup initializes indexes; provision indexes in a controlled migration when collections are large. No destructive database schema migration is needed by this restructure.
 

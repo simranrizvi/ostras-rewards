@@ -34,30 +34,29 @@ A product expiry verification and rewards platform built with Next.js, Express a
 ## Repository structure
 
 ```text
-apps/
-  api/
-    scripts/                  # Admin seed and source checks
-    src/
-      config/                 # Validated environment and MongoDB connection
-      integrations/           # OpenAI and n8n clients
-      middleware/             # Auth, upload, origin checks and errors
-      modules/
-        auth/                 # Routes, controller, schemas, session service
-        dashboard/            # Member/admin summary endpoints
-        submissions/          # Upload/review endpoints, model, reward decisions
-        rewards/              # Points ledger model
-        users/                # Member/admin account model
-      shared/                 # Calendar-date and pagination rules
-      app.js                  # Express composition, no listening side effects
-      server.js               # Database bootstrap and HTTP lifecycle
-    test/                     # Domain and HTTP/database regression tests
-  web/
-    src/
-      app/                    # Route adapters, layouts, loading/error boundaries
-      features/               # Auth, dashboard, submissions, admin, rewards screens
-      components/             # Shared shell, pagination and status filter
-      lib/                    # HTTP client and paginated resource hook
-    next.config.mjs
+backend/
+  scripts/                  # Admin seed and source checks
+  src/
+    config/                 # Validated environment and MongoDB connection
+    integrations/           # OpenAI and n8n clients
+    middleware/             # Auth, upload, origin checks and errors
+    modules/
+      auth/                 # Routes, controller, schemas, session service
+      dashboard/            # Member/admin summary endpoints
+      submissions/          # Upload/review endpoints, model, reward decisions
+      rewards/              # Points ledger model
+      users/                # Member/admin account model
+    shared/                 # Calendar-date and pagination rules
+    app.js                  # Express composition, no listening side effects
+    server.js               # Database bootstrap and HTTP lifecycle
+  test/                     # Domain and HTTP/database regression tests
+frontend/
+  src/
+    app/                    # Route adapters, layouts, loading/error boundaries
+    features/               # Auth, dashboard, submissions, admin, rewards screens
+    components/             # Shared shell, pagination and status filter
+    lib/                    # HTTP client and paginated resource hook
+  next.config.mjs
 n8n/                          # Importable date-check workflow
 docs/                        # Architecture, API and deployment guidance
 ```
@@ -70,7 +69,7 @@ Requirements: Node.js 22 LTS, npm 10+, and Docker Engine/Desktop for local Mongo
 git clone https://github.com/simranrizvi/ostras-rewards.git
 cd ostras-rewards
 cp .env.example .env
-cp apps/web/.env.example apps/web/.env.local
+cp frontend/.env.example frontend/.env.local
 npm ci
 docker compose up -d
 npm run dev
@@ -83,7 +82,7 @@ npm run dev
 | API database readiness | http://localhost:4100/api/ready  |
 | n8n editor             | http://localhost:5678            |
 
-On Windows PowerShell, use `Copy-Item` instead of `cp` if needed. The API always loads the root `.env`; upload paths are resolved relative to `apps/api`, independent of the shell's working directory.
+On Windows PowerShell, use `Copy-Item` instead of `cp` if needed. The API always loads the root `.env`; upload paths are resolved relative to `backend`, independent of the shell's working directory.
 
 Set private `JWT_SECRET` and `N8N_CALLBACK_SECRET` values. Configure `ADMIN_EMAIL` and `ADMIN_PASSWORD` before creating an administrator:
 
@@ -135,6 +134,6 @@ Tests start an isolated temporary MongoDB replica set using `mongodb-memory-serv
 
 ## Deployment and operational scope
 
-The Compose file supplies **development MongoDB and n8n**, not container images for the web/API. Deploy `apps/web` and `apps/api` as separate Node.js services and follow [deployment instructions](docs/deployment.md). Use HTTPS, same-site app/API domains, private persistent upload storage, database backups and proper secrets. Multi-instance API deployment requires shared rate-limit state and shared private image storage.
+The Compose file supplies **development MongoDB and n8n**, not container images for the web/API. Deploy `frontend` and `backend` as separate Node.js services and follow [deployment instructions](docs/deployment.md). Use HTTPS, same-site app/API domains, private persistent upload storage, database backups and proper secrets. Multi-instance API deployment requires shared rate-limit state and shared private image storage.
 
 Live OpenAI calls and a deployed n8n execution require your credentials and infrastructure. CI verifies the API callback and reward behavior without making paid external calls. Points redemption, product ownership verification, email recovery and perceptual image matching are not implemented.
